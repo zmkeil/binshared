@@ -1,10 +1,7 @@
-local checkSession = require "checkSession"
-local sessionL = checkSession:new()
-
 
 -- check allow
-local checkSession = require "checkSession"
-local sessionL = checkSession:new(db)
+local bs_session = require "bs_session"
+local sessionL = bs_session:new(db)
 local flag, username = sessionL:checkLogin()
 
 

@@ -89,7 +89,7 @@ function _M.xxdecode(self, str)
 end
 		
 
-function _M.updateLoginTime(self, name)
+function _M.updateLoginTime(self, name, uid)
 	local db = self.wrapdb
 	local time = ngx.time()
 	local loginUsers = ngx.shared.loginUsers
@@ -100,13 +100,13 @@ function _M.updateLoginTime(self, name)
 	else
 		local ures = db:select("login_users", "logintime", {name=name})
 		if not ures then
-			return nil, BS_HEAD.."get login_time error"
+			return nil, BS_HEAD.."get login_users error"
 		end
 
 		if ures[1] and ures[1].logintime then
 			res = db:update("login_users", {logintime=time}, {name=name})
 		else
-			res = db:insert("login_users", {uid=uid,name})
+			res = db:insert("login_users", {uid,name,time})
 		end
 	end
 

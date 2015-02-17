@@ -7,38 +7,32 @@ local BACK_STRING
 
 local cjson = require "cjson"
 local mysql = require "resty.mysql"
-local db = mysql:new()
-local ok, err, errno, sqlstate = db:connect({
-    host = "127.0.0.1",
-    port = 3306,
-    database = "binshared",
-    user = "admin",
-    password = "123"})
 
 
 local upload = require "resty.upload"
 local cjson = require "cjson"
 
-local form = upload:new(20)
+local form = upload:new(1024)
 form:set_timeout(1000) -- 1 sec
 
-
 -- check allow
-local checkSession = require "checkSession"
-local sessionL = checkSession:new(db)
+local bs_session = require "bs_session"
+local sessionL = bs_session:new()
 local flag, username = sessionL:checkLogin()
-
+local db = sessionL.wrapdb
 
 if flag == 1 or flag == 2 then
---	local backurl = "/dox/dox.html"
---	ngx.redirect("/login.html?backurl="..backurl, 301)
---	可以仅用一个文案，等ajaxform OK 之后吧
 --	您还未登录，或者session已过期，请刷新页面重新登录
-	BACK_STRING = "LOGOUT"
+	BACK_STRING = "LOGOUT"..flag
 elseif flag == 0 and not string.find(OPENtoTHESE, username) then
 	BACK_STRING = "DENY"
+	local up = require("bs_updateAppVisit")
+	up:incVisit("dox","doit")
 else
 	-- flag = 0 and user ALLOWED
+	local up = require("bs_updateAppVisit")
+	up:incVisit("dox","doit")
+
 	local baseDIR = "/home/zmkeil/dirOfShared/doxfile/"
 	local fcount = 0
 	local filest = {}
@@ -47,11 +41,9 @@ else
 	local function recordInDB(db, filename, username)
 		local time = ngx.time()
 		local url = "/doxfile/"..filename
-		local queryline = "insert into dox value(\""..username.."\", \""..filename.."\", "..time..", \""..url.."\")"
-
-		local res, err, errno, sqlstate = db:query(queryline)
+		local res = db:insert("dox",{username,filename,time,url})
 		if not res then
-			return nil, "bad result #1: "..err..": "..errno..": "..sqlstate
+			return nil, "insert dox_table error"
 		end
 
 		return "ok"
@@ -93,7 +85,7 @@ else
 			local ok, err = recordInDB(db,filename,username)
 			if not ok then
 				ngx.log(ngx.ERR, err)
-				BACK_STRING = "ERROR"
+				BACK_STRING = "ERROR: "..err
 				break
 			end
 

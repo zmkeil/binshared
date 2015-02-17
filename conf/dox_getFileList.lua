@@ -1,43 +1,31 @@
 local OPENtoTHESE = "MANG"
-local mysql = require "resty.mysql"
-local elbuild = require "elbuild"
---local lfs = require "lfs"
 
+local bs_htbuild = require "bs_htbuild"
+local elpaint = bs_htbuild.elpaint
 
 -- check allow
-local checkSession = require "checkSession"
-local sessionL = checkSession:new()
+local bs_session = require "bs_session"
+local sessionL = bs_session:new()
 local flag, username = sessionL:checkLogin()
+local db = sessionL.wrapdb
 
 
 
 -- app content
-local db = mysql:new()
-local ok, err, errno, sqlstate = db:connect({
-    host = "127.0.0.1",
-    port = 3306,
-    database = "binshared",
-    user = "admin",
-    password = "123"})
-
 local function paintOneFile(filename, updatetime, fileurl, backurl)
 	local at2 = {href = "javascript:dox_showUrl(\'"..filename.."\',\'"..fileurl.."\')"}
---	local res = elbuild:dg_paint(2,1,"tr",_,2,"td",_,"td",at2)
-	local td = elbuild:paint("label",{},os.date("%Y-%m-%d %H:%M:%S", updatetime))
-	td = td.."&nbsp;&nbsp;&nbsp"..elbuild:paint("a",at2,filename)
-	res = elbuild:paint("p",_,td)
+	local td = elpaint(self,"label",{},os.date("%Y-%m-%d %H:%M:%S", updatetime))
+	td = td.."&nbsp;&nbsp;&nbsp"..elpaint(self,"a",at2,filename)
+	res = elpaint(self,"p",_,td)
 	return res
 end
 
 local function allfiles(db, backurl)
 	local result = ""
 	local nums = 0
-	local res, err, errno, sqlstate
-	local queryline = "select * from dox where user_name=\""..username.."\""
-
-	res, err, errno, sqlstate = db:query(queryline)
+	local res = db:select("dox",_,{user_name=username},"order by updatetime")
 	if not res then
-		ngx.log(ngx.ERR, "bad result #1: ", err, ": ", errno, ": ", sqlstate, ".")
+		ngx.log(ngx.ERR, "query dox_table error")
 		return ngx.exit(500)
 	else
 		local row, filename, updatetime, fileurl
@@ -54,10 +42,10 @@ local function allfiles(db, backurl)
 	if nums == 0 then
 		rresult = "You Have Not upload files"
 	else
-		rresult = elbuild:paint("div",{style="height: 320px; overflow: scroll;"},result)
+		rresult = elpaint(self,"div",{style="height: 320px; overflow: scroll;"},result)
 	end
 	
-	return rresult.."<br/>"..elbuild:paint("input",{type="button",onclick="dox_reflash_flist();",value="Reflash"},"")
+	return rresult.."<br/>"..elpaint(self,"input",{type="button",onclick="dox_reflash_flist();",value="Reflash"},"")
 end
 
 
@@ -71,13 +59,13 @@ elseif flag == 2 then
 	str = "您离开太久了，请重新登录"
 elseif flag == 0 then 
 	if not string.find(OPENtoTHESE, username) then
-		str = elbuild:paint("p",_,"该服务目前只对少数用户可用，如果您确实希望使用，请联系管理员")
-		str = str..elbuild:paint("p",_,"zhaomangzheng@163.com")
+		str = elpaint(self,"p",_,"该服务目前只对少数用户可用，如果您确实希望使用，请联系管理员")
+		str = str..elpaint(self,"p",_,"zhaomangzheng@163.com")
 	else
 		str = allfiles(db, backurl)
 	end
 else
-	str = elbuild:paint("p",_,"server error")
+	str = elpaint(self,"p",_,"server error")
 end
 
 if flag ~= 0 then

@@ -61,8 +61,6 @@ function _M.dg_paint(self,levels,...)
 
 
 	end
-
-
 end
 
 

@@ -1,4 +1,4 @@
-local checkSession = require "checkSession"
+local bs_session = require "bs_session"
 
 -- get name
 ngx.req.read_body()
@@ -20,7 +20,7 @@ end
 
 
 -- check name, and set Cookie
-local sessionL = checkSession:new()
+local sessionL = bs_session:new()
 
 local res = sessionL.wrapdb:select("uic","name,uid",{email=lr_email})
 
@@ -35,9 +35,17 @@ else
 	end
 
 	if not name then
-		ngx.redirect(ngx.req.get_headers()['Referer']..'&again=1')
+		local refer = ngx.req.get_headers()['Referer']
+		local _,d = string.match(refer,"(again=)(%d)")
+		if d then
+			refer = string.gsub(refer, "again=%d", "again="..(d+1))
+		else
+			refer = refer..'&again=1'
+		end
+		ngx.redirect(refer)
+--		ngx.redirect(ngx.req.get_headers()['Referer']..'&again=1')
 	else
-		local time, err = sessionL:updateLoginTime(name)
+		local time, err = sessionL:updateLoginTime(name,uid)
 		if not time then
 			ngx.log(ngx.ERR, err)
 			ngx.exit(500)

@@ -17,7 +17,10 @@
 	<script>
 		$(document).ready(function(){
 			$("#appslist").load("/getAppList.do");
+
+			setInterval('$("#appslist").load("/getAppList.do")',60*1000);
 		});
+
 	</script>
 
 
@@ -72,7 +75,7 @@
 						有任何问题，任何吐槽，任何...
 					</p>
 					<p>
-						欢迎联系我们：zhaomangzheng@163.com，分享您的精彩
+						欢迎联系我们：zhaomangzheng@126.com，分享您的精彩
 					</p>
 				</div>
 				<div class="col-md-4 column">

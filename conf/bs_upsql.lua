@@ -26,6 +26,27 @@ function _M.new(self,database,host,port,user,password)
 end
 
 
+local function tstos_s(target, concat)
+	local lua_table = require "table"
+	local s_target = nil
+
+	if type(target) == "table" then
+		local st_target = {}
+		for k,v in ipairs(target) do
+			if type(v) == "string" then
+				lua_table.insert(st_target, string.format("\"%s\"",v))
+			elseif type(v) == "number" then
+				lua_table.insert(st_target, v)
+			end
+		end
+		s_target = lua_table.concat(st_target, concat)
+	elseif type(target) == "string" then
+		s_target = target
+	end
+
+	return s_target
+end
+
 local function tstos(target, concat)
 	local lua_table = require "table"
 	local s_target = nil
@@ -34,7 +55,7 @@ local function tstos(target, concat)
 		local st_target = {}
 		for k,v in pairs(target) do
 			if type(v) == "string" then
-				lua_table.insert(st_target, k.."=\""..v.."\"")
+				lua_table.insert(st_target, string.format("%s=\"%s\"",k,v))
 			elseif type(v) == "number" then
 				lua_table.insert(st_target, k.."="..v)
 			end
@@ -61,7 +82,7 @@ function _M.update(self, table, target, rule)
 	end
 
 	s_rule = tstos(rule, " and ")
-	if not rule then
+	if not s_rule then
 		return nil, "rule not supported"
 	end
 
@@ -80,7 +101,7 @@ function _M.update(self, table, target, rule)
 end
 
 
-function _M.select(self, table, field, rule)
+function _M.select(self, table, field, rule, order_rule)
 	local lua_table = require "table"
 	local db = self.db
 	local res, err, errno, sqlstate
@@ -91,8 +112,11 @@ function _M.select(self, table, field, rule)
 	lua_table.insert(st_queryline, 2, mfield)
 	lua_table.insert(st_queryline, 4, table)
 	if s_rule then
-		lua_table.insert(st_queryline, 5, "where")
-		lua_table.insert(st_queryline, 6, s_rule)
+		lua_table.insert(st_queryline, "where")
+		lua_table.insert(st_queryline, s_rule)
+	end
+	if order_rule and type(order_rule) == "string" then
+		lua_table.insert(st_queryline, order_rule)
 	end
 	
 	res, err, errno, sqlstate = db:query(lua_table.concat(st_queryline, " "))
@@ -109,13 +133,14 @@ function _M.insert(self, table, values)
 	local db = self.db
 	local res, err, errno, sqlstate
 
-	local s_values = tstos(values, ",")
+	local s_values = tstos_s(values, ",")
 	if not s_values then
 		ngx.log(ngx.ERR, "mysql insert value is null")
 		return nil
 	end
+--	ngx.log(ngx.ERR, s_values)
 
-	local st_queryline([1] = "insert into", [3] = "value(", [5]=")")
+	local st_queryline = {[1] = "insert into", [3] = "value(", [5]=")"}
 	lua_table.insert(st_queryline, 2, table)
 	lua_table.insert(st_queryline, 4, s_values)
 
